@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project 5</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link href="https://unpkg.com/material-components-web@v4.0.0/dist/material-components-web.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/material-components-web@v4.0.0/dist/material-components-web.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+	
+  <style>
+    .view {
+      display: none;
+    }
+
+    :root {
+      --mdc-theme-primary: blue	;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <header class="mdc-top-app-bar" style="left: 0; top: 0;">
+    <div class="mdc-top-app-bar__row">
+      <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
+        <button class="material-icons mdc-top-app-bar__navigation-icon mdc-icon-button">menu</button>
+        <span class="mdc-top-app-bar__title">Covid-19 Data</span>
+      </section>
+    </div>
+  </header>
+
+  <aside class="mdc-drawer mdc-drawer--modal">
+    <div class="mdc-drawer__content">
+      <nav class="mdc-list">
+        <a class="mdc-list-item mdc-list-item--activated" href="#home" id="gohome" aria-current="page">
+          <i class="material-icons mdc-list-item__graphic" aria-hidden="true">home</i>
+          <span class="mdc-list-item__text">Home</span>
+        </a>
+        <a class="mdc-list-item" href="#search" id="gosearch" >
+          <i class="material-icons mdc-list-item__graphic" aria-hidden="true">search</i>
+          <span class="mdc-list-item__text" >Search</span>
+        </a>
+        <a class="mdc-list-item" href="#data" onclick="buildTable()" id="gotable">
+          <i class="material-icons mdc-list-item__graphic" aria-hidden="true">table_chart</i>
+          <span class="mdc-list-item__text">Table</span>
+        </a>
+          <a class="mdc-list-item" href="#chart" onClick="buildChart()" id="gochart">
+          <i class="material-icons mdc-list-item__graphic" aria-hidden="true">show_chart</i>
+          <span class="mdc-list-item__text">Chart</span>
+        </a>
+      </nav>
+    </div>
+  </aside>
+
+  <div class="mdc-drawer-scrim"></div>
+
+  <main class="main-content mdc-top-app-bar--fixed-adjust">
+
+    <div id="home">
+      <h1>Home</h1>
+		<p>Displays the current data of the COVID-19 outbreak based on state.</p>
+		<p>The data comes from <a href="https://covidtracking.com/api#states-historical-data"> https://covidtracking.com/api#states-historical-data.</a>
+		<p>Navigate using the hamburger in the upper left hand corner.</p>
+    </div>
+      
+    <div id="search" class="view">
+      <h1>Search</h1>
+		<p>State:</p>
+        <input list="states" id="myStates">
+  <datalist id="states"> 
+  </datalist>
+  <div id="myState"> <!-- myState append -->
+  </div>
+ <button onClick="addState()">
+	  <span>Add State</span>
+  </button>
+ <button onCLick="addCurState()">
+	 <span>Add State of your Location</span>
+		</button>
+
+	<p>Statistic:</p>
+	  <input list="stats" id="myStats">
+
+	  <datalist id="stats">
+		  <option value="Positive">
+		  <option value="Negative">
+		  <option value="Recovered">
+		  <option value="Deaths">
+		  <option value="Total">
+	  </datalist>
+	  <div id="myStat"> <!-- myStat append -->
+	  </div>
+		  <button onClick="addStat()">
+              <span>Add Stat</span>
+          </button>
+    </div>
+	  
+	<div id="data"  class="view">
+      <h1 id="dataType">Data</h1>
+        <div id="tableData">
+		</div>
+    </div>
+      
+      <div id="chart" class="view">
+		  <h1>Data Chart</h1>
+       <div id="chartData"></div>
+    </div>
+      
+  </main>
+    
+	<script>
+		  //menu traversal
+    let menu = mdc.drawer.MDCDrawer.attachTo(document.querySelector('.mdc-drawer'));
+    document.querySelector(".mdc-top-app-bar__navigation-icon")
+        .addEventListener("click", (e) => {
+		menu.open = true;
+    });
+		document.querySelectorAll('.mdc-list-item').forEach(tab => {
+		tab.addEventListener('click', event => {
+		switch (tab.id) {
+		  case 'gohome':
+			document.querySelector('#home').style.display = "block";
+			document.getElementById('search').style.display = "none";
+			document.getElementById('data').style.display = "none";
+			document.getElementById('chart').style.display = "none";
+			menu.open = !menu.open;
+			break;
+		 case 'gosearch':
+			document.getElementById('home').style.display = "none";
+			document.getElementById('search').style.display = "block";
+			document.getElementById('data').style.display = "none";
+			document.getElementById('chart').style.display = "none";
+			menu.open = !menu.open;
+			break;
+		  case 'gotable':
+			document.getElementById('home').style.display = "none";
+			document.getElementById('search').style.display = "none";
+			document.getElementById('data').style.display = "block";
+			document.getElementById('chart').style.display = "none";
+			menu.open = !menu.open;
+			break;
+		  case 'gochart':
+			document.getElementById('home').style.display = "none";
+			document.getElementById('search').style.display = "none";
+			document.getElementById('data').style.display = "none";
+			document.getElementById('chart').style.display = "block";
+			menu.open = !menu.open;
+			break;
+		}
+	  });
+	});
+
+		let State = "";
+		let Dates = [];
+		let states;
+		let data;
+		let sList = []; 		//list of states
+		let curState = ""; 		//state by user
+		let useStates = [];		//states in use
+		let useData = [];		//state data
+		let statis = [];		//statis(tic)
+		let row1 = [];			//row for states
+		let row2 = [];			//row for stats
+		
+		if ("serviceWorker" in navigator) {
+          window.addEventListener("load", function() {
+            navigator.serviceWorker
+              .register("/serviceWorker.js")
+              .then(res => console.log("service worker registered"))
+              .catch(err => console.log("service worker not registered", err));
+          });
+        };
+		
+		let endpt1 = "https://covidtracking.com/api/v1/states/info.json"
+		let endpt2 = "https://covidtracking.com/api/v1/states/current.json"
+		fetch(endpt1)
+		.then(response => {return response.json()})
+		.then(json => {
+			states = json;
+			fetch(endpt2)
+			.then(response => {return response.json()})
+			.then(json => {
+				data = json;
+				for(let d in data){
+					for(let s in states){
+						if(states[s].state == data[d].state){
+							sList[states[s].name] = data[d];
+						}
+					}
+				}
+				for(let i in sList){
+                curState += "<option value='"+i+"'/>";
+            }
+            document.getElementById("states").innerHTML = curState;
+        }).catch(err => console.error(err)); 
+    }).catch(err => console.error(err));
+    
+	// states listing
+    function addState() {
+        let uinput = document.querySelector("#myStates");
+        let curVal = uinput.value
+		let x = false;
+		if(curVal == ""){
+            x = true;
+        } 
+		else {
+            for(let c in useStates){
+               if(curVal == useStates[c]){
+                   x = true;
+               }
+            }
+        }		//nothing or in list
+        
+        if(x == false){	//not listed
+            useStates.push(curVal);
+            for(d in sList){
+                if(d == curVal){
+                    useData[curVal] = sList[d];
+                }
+            }
+            let queue = document.querySelector("#myState")
+            let next = document.createElement("p")
+            next.innerText = curVal;
+            queue.appendChild(next);
+        }
+        uinput.value = "";	//reset
+    }
+		
+	// state location
+	function addCurState(){
+		function getLocation() {
+			if (navigator.geolocation) {
+				navigator.geolocation.getCurrentPosition(showPosition);
+			} 
+			else {
+				let warn = "Geolocation is not supported by this browser.";
+			}
+			let lat = position.coords.latitude;
+			let long = position.coords.longitude;
+		}
+		// placeholder
+		let x = false;
+		for(let c in useStates){
+               if("Illinois" == useStates[c]){
+                   x = true;
+               }
+            }
+		if(x == false){ 	//not listed
+			useStates.push("Illinois");
+            for(d in sList){
+                if(d == "Illinois"){
+                    useData["Illinois"] = sList[d];
+                }
+            }
+            let queue = document.querySelector("#myState")
+            let next = document.createElement("p")
+            next.innerText = "Illinois";
+            queue.appendChild(next);
+		}
+	}
+	
+    // stats of data
+    function addStat(){
+        let uinput = document.querySelector("#myStats");
+        let curVal = uinput.value;
+        let x = false;
+        switch(curVal){ //available stats
+            case "Positive": 
+                curVal = "positive";
+                break;
+			case "Negative": 
+                curVal = "negative";
+                break;
+            case "Deaths":
+                curVal = "death";
+                break;
+            case "Total":
+                curVal = "totalTestResults";
+                break;
+			case "Recovered":
+				curVal = "recovered";
+				break;
+            default:
+                curVal = "";
+                break;
+         }
+        
+        if(curVal == ""){
+            x = true;
+        } 
+		else {
+            for(let t in statis){
+                if(curVal == statis[t]){
+                    x = true;
+                }
+            }
+        }					//nothing or in list
+		
+		if(x == false){     //not listed 
+			statis.push(curVal);
+            let queue = document.querySelector("#myStat")
+            let next = document.createElement("p")
+            next.innerText = uinput.value;
+            queue.appendChild(next);
+        }
+        uinput.value = ""; //reset
+    }
+    
+	// create table from google requires at least one state and one stat
+    function buildTable(){
+      row1 = [];
+      google.charts.load('current', {'packages':['table']});
+      google.charts.setOnLoadCallback(createTable);
+            function createTable() {
+              let tableInfo = new google.visualization.DataTable();
+              tableInfo.addColumn('string', 'State');
+                  for(t in statis){
+                      let thisStat = "";
+                      switch(statis[t]){
+                        case "positive": 
+                            thisStat = "Positive";
+                            break;
+						case "negative": 
+                            thisStat = "Negative";
+                            break;
+                        case "death":
+                            thisStat = "Deaths";
+                            break;
+                        case "totalTestResults":
+                            thisStat = "Total";
+                            break;
+						case "recovered":
+                            thisStat = "Recovered";
+                            break;
+                        default:
+                            thisStat = "";
+                            break;
+                      }
+
+                      tableInfo.addColumn('number', thisStat);
+                  }
+              let i = 0;
+              for(let s in useData){
+                  row1.push([s])
+				  for(let t in statis){
+					  row1[i].push(useData[s][statis[t]]);
+                  }
+                  i++;
+              }
+              tableInfo.addRows(row1);
+				let table = new google.visualization.Table(document.getElementById('tableData'));
+              table.draw(tableInfo, {width: '100%', height: '100%'});
+            }  
+	}
+	
+	
+		// create chart from google requires at least one state and one stat
+		function buildChart(){
+        row2 = [];
+        row1 = [];
+        google.charts.load('current', {packages: ['corechart', 'bar']});
+        google.charts.setOnLoadCallback(drawStuff);
+        row2.push(['State']);
+        for(let t in statis){
+            let thisStat = "";
+            switch(statis[t]){
+              case "positive": 
+                  thisStat = "Positive";
+                  break;
+			  case "negative": 
+                  thisStat = "Negative";
+                  break;
+              case "death":
+                  thisStat = "Deaths";
+                  break;
+              case "totalTestResults":
+                  thisStat = "Total";
+                  break;
+			  case "recovered":
+				  thisStat = "Recovered";
+				  break;
+              default:
+                  thisStat = "";
+                  break;
+            }
+            row2[0].push(thisStat);
+        }
+         let i = 0;
+          for(let s in useData){
+              row1.push([s])
+              for(let t in statis){
+                  row1[i].push(useData[s][statis[t]]);
+              }
+              i++;
+          }
+        for(let d in row1){
+            row2.push(row1[d]);
+        }
+        function drawStuff() {
+              let data = google.visualization.arrayToDataTable(row2);
+
+              let materialOptions = {
+				//width: 900,
+				//height:300,
+                chart: {
+                  title: 'COVID-19'
+                },
+                hAxis: {
+                  title: 'States',
+                },
+              };
+              let materialChart = new google.charts.Bar(document.getElementById('chartData'));
+              materialChart.draw(data, google.charts.Bar.convertOptions(materialOptions));
+            }
+    }
+   
+  </script>
+</body>
